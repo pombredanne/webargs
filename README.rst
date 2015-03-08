@@ -5,12 +5,12 @@ webargs
 .. image:: https://badge.fury.io/py/webargs.png
     :target: http://badge.fury.io/py/webargs
 
-.. image:: https://travis-ci.org/sloria/webargs.png?branch=master
+.. image:: https://travis-ci.org/sloria/webargs.png?branch=pypi
     :target: https://travis-ci.org/sloria/webargs
 
 Homepage: https://webargs.readthedocs.org/
 
-`Webargs is a Python utility library for parsing HTTP request arguments, with built-in support for popular web frameworks, including Flask and Django.`
+webargs is a Python library for parsing HTTP request arguments, with built-in support for popular web frameworks, including Flask, Django, Bottle, Tornado, and Pyramid.
 
 .. code-block:: python
 
@@ -50,8 +50,16 @@ Documentation
 
 Full documentation is available at https://webargs.readthedocs.org/.
 
+Project Links
+-------------
+
+- Docs: http://webargs.rtfd.org/
+- Changelog: http://webargs.readthedocs.org/en/latest/changelog.html
+- PyPI: https://pypi.python.org/pypi/webargs
+- Issues: https://github.com/sloria/webargs/issues
+
 
 License
 -------
 
-MIT licensed. See the `LICENSE <https://github.com/sloria/webargs/blob/master/LICENSE>`_ file for more details.
+MIT licensed. See the `LICENSE <https://github.com/sloria/webargs/blob/dev/LICENSE>`_ file for more details.

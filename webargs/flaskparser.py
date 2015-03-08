@@ -18,11 +18,15 @@ Example: ::
     def index(args):
         return 'Hello ' + args['name']
 """
-from flask import request
-from flask import abort as flask_abort
+import logging
+
+from flask import request, abort as flask_abort
 from werkzeug.exceptions import HTTPException
 
 from webargs import core
+from webargs.core import text_type
+
+logger = logging.getLogger(__name__)
 
 def abort(http_status_code, **kwargs):
     """Raise a HTTPException for the given http_status_code. Attach any keyword
@@ -43,10 +47,12 @@ class FlaskParser(core.Parser):
 
     def parse_json(self, req, name, arg):
         """Pull a json value from the request."""
-        if req.content_type == 'application/json' and hasattr(req, 'json'):
-            return core.get_value(req.json, name, arg.multiple)
+        # Fail silently so that the webargs parser can handle the error
+        json_data = req.get_json(silent=True)
+        if json_data:
+            return core.get_value(json_data, name, arg.multiple)
         else:
-            return None
+            return core.Missing
 
     def parse_querystring(self, req, name, arg):
         """Pull a querystring value from the request."""
@@ -57,7 +63,8 @@ class FlaskParser(core.Parser):
         try:
             return core.get_value(req.form, name, arg.multiple)
         except AttributeError:
-            return None
+            pass
+        return core.Missing
 
     def parse_headers(self, req, name, arg):
         """Pull a value from the header data."""
@@ -75,7 +82,10 @@ class FlaskParser(core.Parser):
         """Handles errors during parsing. Aborts the current HTTP request and
         responds with a 400 error.
         """
-        abort(400, message=error)
+        logger.error(error)
+        status_code = getattr(error, 'status_code', 400)
+        data = getattr(error, 'data', {})
+        abort(status_code, message=text_type(error), exc=error, **data)
 
     def parse(self, argmap, req=None, *args, **kwargs):
         """Parses the request using the given arguments map.
@@ -84,5 +94,6 @@ class FlaskParser(core.Parser):
         req_obj = req or request  # Default to context-local request
         return super(FlaskParser, self).parse(argmap, req_obj, *args, **kwargs)
 
-
-use_args = FlaskParser().use_args
+parser = FlaskParser()
+use_args = parser.use_args
+use_kwargs = parser.use_kwargs

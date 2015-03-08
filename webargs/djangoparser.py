@@ -20,12 +20,22 @@ Example usage: ::
 """
 import json
 import functools
+import logging
 
 from webargs import core
 
+logger = logging.getLogger(__name__)
 
 class DjangoParser(core.Parser):
-    """Django request argument parser."""
+    """Django request argument parser.
+
+    .. note::
+
+        The :class:`DjangoParser` does not override
+        :meth:`handle_error <webargs.core.Parser.handle_error>`, so your Django
+        views are responsible for catching any :exc:`ValidationErrors` raised by
+        the parser and returning the appropriate `HTTPResponse`.
+    """
 
     def parse_querystring(self, req, name, arg):
         """Pull the querystring value from the request."""
@@ -41,7 +51,8 @@ class DjangoParser(core.Parser):
             reqdata = json.loads(req.body.decode('utf-8'))
             return core.get_value(reqdata, name, arg.multiple)
         except (AttributeError, ValueError):
-            return None
+            pass
+        return core.Missing
 
     def parse_cookies(self, req, name, arg):
         """Pull the value from the cookiejar."""
@@ -55,7 +66,8 @@ class DjangoParser(core.Parser):
         """Pull a file from the request."""
         return core.get_value(req.FILES, name, arg.multiple)
 
-    def use_args(self, argmap, req=None, targets=core.DEFAULT_TARGETS):
+    def use_args(self, argmap, req=None, locations=core.Parser.DEFAULT_LOCATIONS,
+                 validate=None):
         """Decorator that injects parsed arguments into a view function or method.
 
         Example: ::
@@ -66,7 +78,10 @@ class DjangoParser(core.Parser):
 
         :param dict argmap: Dictionary of argument_name:Arg object pairs.
         :param req: The request object to parse
-        :param tuple targets: Where on the request to search for values.
+        :param tuple locations: Where on the request to search for values.
+        :param callable validate: Validation function that receives the dictionary
+            of parsed arguments. If the function returns ``False``, the parser
+            will raise a :exc:`ValidationError`.
         """
         def decorator(func):
             @functools.wraps(func)
@@ -76,9 +91,12 @@ class DjangoParser(core.Parser):
                     request = obj.request
                 except AttributeError:  # first arg is request
                     request = obj
-                parsed_args = self.parse(argmap, req=request, targets=targets)
+                parsed_args = self.parse(argmap, req=request, locations=locations,
+                                         validate=validate)
                 return func(obj, parsed_args, *args, **kwargs)
             return wrapper
         return decorator
 
-use_args = DjangoParser().use_args
+parser = DjangoParser()
+use_args = parser.use_args
+use_kwargs = parser.use_kwargs

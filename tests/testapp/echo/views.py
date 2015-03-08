@@ -61,13 +61,20 @@ def simpleview(request):
     args = parser.parse(hello_args, request)
     return render_json_response(args)
 
+required_args = {
+    'name': Arg(str, required=True)
+}
+def simpleview_with_required_arg(request):
+    args = parser.parse(required_args, request)
+    return render_json_response(args)
+
 def simpleview_multi(request):
     args = parser.parse(hello_multi, request)
     return render_json_response(args)
 
 def cookieview(request):
     request.COOKIES['name'] = 'Joe'
-    args = parser.parse(hello_args, request, targets=('cookies',))
+    args = parser.parse(hello_args, request, locations=('cookies',))
     return render_json_response(args)
 
 @parser.use_args(hello_args)
@@ -76,4 +83,8 @@ def simpleview_with_param(request, args, pid):
 
 @parser.use_args(hello_args)
 def decoratedview(request, args):
+    return render_json_response(args)
+
+@parser.use_args({'validated': Arg(validate=lambda n: False)})
+def validatedview(request, args):
     return render_json_response(args)

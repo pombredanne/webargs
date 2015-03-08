@@ -3,23 +3,29 @@
 
 Example: ::
 
-    from bottle import route
+    from bottle import route, run
     from webargs import Arg
     from webargs.bottleparser import use_args
 
     hello_args = {
         'name': Arg(str, default='World')
     }
-
-    @route('/', method=['GET', 'POST'])
+    @route('/', method='GET')
     @use_args(hello_args)
-    def index(args)
+    def index(args):
         return 'Hello ' + args['name']
+
+    if __name__ == '__main__':
+        run(debug=True)
 """
-from bottle import abort, request
+import logging
+
+from bottle import request, HTTPError
 
 from webargs import core
+from webargs.core import text_type
 
+logger = logging.getLogger(__name__)
 
 class BottleParser(core.Parser):
     """Bottle.py request argument parser."""
@@ -27,7 +33,6 @@ class BottleParser(core.Parser):
     def parse_querystring(self, req, name, arg):
         """Pull a querystring value from the request."""
         return core.get_value(req.query, name, arg.multiple)
-
 
     def parse_form(self, req, name, arg):
         """Pull a form value from the request."""
@@ -38,7 +43,8 @@ class BottleParser(core.Parser):
         try:
             return core.get_value(req.json, name, arg.multiple)
         except (AttributeError, ValueError):
-            return None
+            pass
+        return core.Missing
 
     def parse_headers(self, req, name, arg):
         """Pull a value from the header data."""
@@ -56,7 +62,11 @@ class BottleParser(core.Parser):
         """Handles errors during parsing. Aborts the current request with a
         400 error.
         """
-        return abort(400, str(error))
+        logger.error(error)
+        status = getattr(error, 'status_code', 400)
+        data = getattr(error, 'data', {})
+        raise HTTPError(status=status, body=text_type(error),
+                        headers=data.get('headers'), exception=error)
 
     def parse(self, argmap, req=None, *args, **kwargs):
         """Parses the request using the given arguments map.
@@ -65,4 +75,6 @@ class BottleParser(core.Parser):
         req_obj = req or request  # Default to context-local request
         return super(BottleParser, self).parse(argmap, req_obj, *args, **kwargs)
 
-use_args = BottleParser().use_args
+parser = BottleParser()
+use_args = parser.use_args
+use_kwargs = parser.use_kwargs

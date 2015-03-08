@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+import sys
 
 import pytest
 import mock
 from webtest import TestApp
-from tests.testapp.testapp.wsgi import application
 from webargs import Arg
 from webargs.djangoparser import DjangoParser
 
+PY26 = sys.version_info[0] == 2 and int(sys.version_info[1]) < 7
+if not PY26:
+    from tests.testapp.testapp.wsgi import application
+
+pytestmark = pytest.mark.skipif(PY26, reason='Django is not compatible with python 2.6')
 
 @pytest.fixture
 def testapp():
@@ -76,7 +81,7 @@ def test_parse_headers_raises_not_implemented_error(mockrequest):
     arg = Arg()
     p = DjangoParser()
     with pytest.raises(NotImplementedError) as excinfo:
-        p.parse_arg('foo', arg, req=mockrequest, targets=('headers',))
+        p.parse_arg('foo', arg, req=mockrequest, locations=('headers',))
     assert 'Header parsing not supported by DjangoParser' in str(excinfo)
 
 def test_parse_cookies(testapp):
@@ -99,3 +104,14 @@ def test_parse_multiple_form(route, testapp):
     payload = {'name': ['steve', 'Loria']}
     res = testapp.post(route, payload)
     assert res.json == {'name': ['steve', 'Loria']}
+
+def test_500_response_returned_if_validation_error(testapp):
+    # Endpoint requires 'name'
+    url = '/simpleview_required/'
+    res = testapp.post_json(url, {}, expect_errors=True)
+    assert res.status_code == 500
+
+def test_validated_view(testapp):
+    url = '/validatedview/'
+    res = testapp.post_json(url, {'validated': 42}, expect_errors=True)
+    assert res.status_code == 500

@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-import mock
 
 import pytest
 from bottle import Bottle, debug, request, response
 from webtest import TestApp
 
-from webargs import Arg
+from webargs import Arg, ValidationError
 from webargs.bottleparser import BottleParser
 
 from .compat import text_type
@@ -23,9 +22,11 @@ parser = BottleParser()
 @pytest.fixture
 def app():
     app = Bottle()
+
     @app.route('/echo', method=['GET', 'POST'])
     def index():
         return parser.parse(hello_args, request)
+
     @app.route('/echomulti/', method=['GET', 'POST'])
     def multi():
         return parser.parse(hello_multiple, request)
@@ -59,10 +60,21 @@ def test_parse_json_default(testapp):
 def test_parsing_form_default(testapp):
     assert testapp.post('/echo', {}).json == {'name': 'World'}
 
-@mock.patch('webargs.bottleparser.abort')
-def test_abort_called_on_validation_error(abort, testapp):
-    testapp.post('/echo', {'name': 'b'})
-    assert abort.called
+def test_abort_called_on_validation_error(testapp):
+    res = testapp.post('/echo', {'name': 'b'}, expect_errors=True)
+    assert res.status_code == 400
+
+def test_validation_error_with_status_code_and_data(app):
+    def always_fail(value):
+        raise ValidationError('something went wrong', status_code=401, extra='some data')
+    args = {'text': Arg(validate=always_fail)}
+
+    @app.route('/validated', method=['POST'])
+    def validated_route():
+        parser.parse(args)
+    vtestapp = TestApp(app)
+    res = vtestapp.post_json('/validated', {'text': 'bar'}, expect_errors=True)
+    assert res.status_code == 401
 
 def test_use_args_decorator(app, testapp):
     @app.route('/foo/', method=['GET', 'POST'])
@@ -71,6 +83,16 @@ def test_use_args_decorator(app, testapp):
         return args
     assert testapp.post('/foo/', {'myvalue': 23}).json == {'myvalue': 23}
 
+def test_use_args_with_validation(app, testapp):
+    @app.route('/foo/', method=['GET', 'POST'])
+    @parser.use_args({'myvalue': Arg(int)}, validate=lambda args: args['myvalue'] > 42)
+    def echo(args):
+        return args
+    result = testapp.post('/foo/', {'myvalue': 43}, expect_errors=True)
+    assert result.status_code == 200
+    result = testapp.post('/foo/', {'myvalue': 41}, expect_errors=True)
+    assert result.status_code == 400
+
 def test_use_args_with_url_params(app, testapp):
     @app.route('/foo/<name>')
     @parser.use_args({'myvalue': Arg(int)})
@@ -78,10 +100,24 @@ def test_use_args_with_url_params(app, testapp):
         return args
     assert testapp.get('/foo/Fred?myvalue=42').json == {'myvalue': 42}
 
+def test_use_kwargs_decorator(app, testapp):
+    @app.route('/foo/', method=['GET', 'POST'])
+    @parser.use_kwargs({'myvalue': Arg(int)})
+    def echo2(myvalue):
+        return {'myvalue': myvalue}
+    assert testapp.post('/foo/', {'myvalue': 23}).json == {'myvalue': 23}
+
+def test_use_kwargs_with_url_params(app, testapp):
+    @app.route('/foo/<name>')
+    @parser.use_kwargs({'myvalue': Arg(int)})
+    def foo(myvalue, name):
+        return {'myvalue': myvalue}
+    assert testapp.get('/foo/Fred?myvalue=42').json == {'myvalue': 42}
+
 def test_parsing_headers(app, testapp):
     @app.route('/echo2')
     def echo2():
-        args = parser.parse(hello_args, request, targets=('headers',))
+        args = parser.parse(hello_args, request, locations=('headers',))
         return args
     res = testapp.get('/echo2', headers={'name': 'Fred'}).json
     assert res == {'name': 'Fred'}
@@ -94,7 +130,21 @@ def test_parsing_cookies(app, testapp):
 
     @app.route('/echocookie')
     def echocookie():
-        args = parser.parse(hello_args, request, targets=('cookies',))
+        args = parser.parse(hello_args, request, locations=('cookies',))
         return args
     testapp.get('/setcookie')
     assert testapp.get('/echocookie').json == {'name': 'Fred'}
+
+def test_arg_specific_locations(app, testapp):
+    testargs = {
+        'name': Arg(str, location='json'),
+        'age': Arg(int, location='querystring'),
+    }
+
+    @app.route('/echo', method=['POST'])
+    def echo():
+        args = parser.parse(testargs, request)
+        return args
+    resp = testapp.post_json('/echo?age=42', {'name': 'Fred'})
+    assert resp.json['age'] == 42
+    assert resp.json['name'] == 'Fred'

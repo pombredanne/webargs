@@ -6,7 +6,11 @@ from setuptools.command.test import test as TestCommand
 
 # Requirements
 REQUIREMENTS = []
-TEST_REQUIREMENTS =['pytest', 'mock', 'flask', 'django', 'webtest', 'bottle']
+TEST_REQUIREMENTS = [
+    'pytest', 'mock', 'flask',
+    'django', 'webtest', 'bottle',
+    'tornado', 'pyramid',
+]
 
 class PyTest(TestCommand):
     def finalize_options(self):
@@ -47,20 +51,19 @@ def read(fname):
 setup(
     name='webargs',
     version=__version__,
-    description=('A utility library for parsing HTTP request arguments, '
+    description=('A friendly library for parsing HTTP request arguments, '
         'with built-in support for popular web frameworks, including '
-        'Flask and Django.'),
-    long_description=(read("README.rst") + '\n\n' +
-                        read("HISTORY.rst")),
+        'Flask, Django, Bottle, Tornado, and Pyramid.'),
+    long_description=read("README.rst"),
     author='Steven Loria',
     author_email='sloria1@gmail.com',
     url='https://github.com/sloria/webargs',
-    packages=find_packages(exclude=("test*", )),
+    packages=find_packages(exclude=("test*", 'examples')),
     package_dir={'webargs': 'webargs'},
     install_requires=REQUIREMENTS,
     license=read("LICENSE"),
     zip_safe=False,
-    keywords=('webargs', 'http', 'flask', 'django', 'bottle',
+    keywords=('webargs', 'http', 'flask', 'django', 'bottle', 'tornado',
      'request', 'arguments', 'parameters', 'rest', 'api'),
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -72,6 +75,7 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',

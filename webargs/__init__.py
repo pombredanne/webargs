@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
+from webargs.core import Arg, WebargsError, ValidationError, RequiredArgMissingError, Missing
 
-__version__ = '0.3.2'
+__version__ = '0.11.0'
 __author__ = 'Steven Loria'
-__license__ = "MIT"
+__license__ = 'MIT'
 
 
-from webargs.core import Arg, WebargsError, ValidationError
+__all__ = ['Arg', 'WebargsError', 'ValidationError', 'RequiredArgMissingError', 'Missing']
