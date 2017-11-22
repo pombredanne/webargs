@@ -22,6 +22,7 @@ lib64
 pip-log.txt
 
 # Unit test / coverage reports
+.cache
 .coverage
 .tox
 nosetests.xml
@@ -45,3 +46,6 @@ docs/_build
 README.html
 
 temp/*
+.konchrc
+
+.python-version

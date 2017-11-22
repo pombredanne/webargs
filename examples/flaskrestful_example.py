@@ -15,22 +15,21 @@ Try the following with httpie (a cURL-like utility, http://httpie.org):
 """
 import datetime as dt
 
-from dateutil import parser as dateparser
 from flask import Flask
-from flask.ext import restful
+from flask_restful import Api, Resource
 
-from webargs import Arg, ValidationError
-from webargs.flaskparser import use_args, use_kwargs, parser
+from webargs import fields, validate
+from webargs.flaskparser import use_args, use_kwargs, parser, abort
 
 app = Flask(__name__)
-api = restful.Api(app)
+api = Api(app)
 
 
-class IndexResource(restful.Resource):
+class IndexResource(Resource):
     """A welcome page."""
 
     hello_args = {
-        'name': Arg(str, default='Friend')
+        'name': fields.Str(missing='Friend')
     }
 
     @use_args(hello_args)
@@ -38,12 +37,12 @@ class IndexResource(restful.Resource):
         return {'message': 'Welcome, {}!'.format(args['name'])}
 
 
-class AddResource(restful.Resource):
+class AddResource(Resource):
     """An addition endpoint."""
 
     add_args = {
-        'x': Arg(float, required=True),
-        'y': Arg(float, required=True),
+        'x': fields.Float(required=True),
+        'y': fields.Float(required=True),
     }
 
     @use_kwargs(add_args)
@@ -51,25 +50,18 @@ class AddResource(restful.Resource):
         """An addition endpoint."""
         return {'result': x + y}
 
-
-def string_to_datetime(val):
-    return dateparser.parse(val)
-
-def validate_unit(val):
-    if val not in ['minutes', 'days']:
-        raise ValidationError("Unit must be either 'minutes' or 'days'.")
-
-class DateAddResource(restful.Resource):
+class DateAddResource(Resource):
 
     dateadd_args = {
-        'value': Arg(default=dt.datetime.utcnow, use=string_to_datetime),
-        'addend': Arg(int, required=True, validate=lambda val: val >= 0),
-        'unit': Arg(str, validate=validate_unit)
+        'value': fields.DateTime(required=False),
+        'addend': fields.Int(required=True, validate=validate.Range(min=1)),
+        'unit': fields.Str(missing='days', validate=validate.OneOf(['minutes', 'days']))
     }
 
     @use_kwargs(dateadd_args)
     def post(self, value, addend, unit):
         """A datetime adder endpoint."""
+        value = value or dt.datetime.utcnow()
         if unit == 'minutes':
             delta = dt.timedelta(minutes=addend)
         else:
@@ -83,8 +75,7 @@ def handle_request_parsing_error(err):
     """webargs error handler that uses Flask-RESTful's abort function to return
     a JSON error response to the client.
     """
-    code, msg = getattr(err, 'status_code', 400), getattr(err, 'message', 'Invalid Request')
-    restful.abort(code, message=msg)
+    abort(422, errors=err.messages)
 
 if __name__ == '__main__':
     api.add_resource(IndexResource, '/')

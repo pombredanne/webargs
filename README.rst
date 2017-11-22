@@ -2,26 +2,26 @@
 webargs
 =======
 
-.. image:: https://badge.fury.io/py/webargs.png
+.. image:: https://badge.fury.io/py/webargs.svg
     :target: http://badge.fury.io/py/webargs
 
-.. image:: https://travis-ci.org/sloria/webargs.png?branch=pypi
+.. image:: https://travis-ci.org/sloria/webargs.svg?branch=pypi
     :target: https://travis-ci.org/sloria/webargs
 
-Homepage: https://webargs.readthedocs.org/
+Homepage: https://webargs.readthedocs.io/
 
-webargs is a Python library for parsing HTTP request arguments, with built-in support for popular web frameworks, including Flask, Django, Bottle, Tornado, and Pyramid.
+webargs is a Python library for parsing and validating HTTP request arguments, with built-in support for popular web frameworks, including Flask, Django, Bottle, Tornado, Pyramid, webapp2, Falcon, and aiohttp.
 
 .. code-block:: python
 
     from flask import Flask
-    from webargs import Arg
+    from webargs import fields
     from webargs.flaskparser import use_args
 
     app = Flask(__name__)
 
     hello_args = {
-        'name': Arg(str, required=True)
+        'name': fields.Str(required=True)
     }
 
     @app.route('/')
@@ -42,19 +42,19 @@ Install
 
     pip install -U webargs
 
-webargs supports Python >= 2.6 or >= 3.3.
+webargs supports Python >= 2.7 or >= 3.4.
 
 
 Documentation
 -------------
 
-Full documentation is available at https://webargs.readthedocs.org/.
+Full documentation is available at https://webargs.readthedocs.io/.
 
 Project Links
 -------------
 
-- Docs: http://webargs.rtfd.org/
-- Changelog: http://webargs.readthedocs.org/en/latest/changelog.html
+- Docs: http://webargs.readthedocs.io/
+- Changelog: http://webargs.readthedocs.io/en/latest/changelog.html
 - PyPI: https://pypi.python.org/pypi/webargs
 - Issues: https://github.com/sloria/webargs/issues
 

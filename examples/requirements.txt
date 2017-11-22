@@ -1,4 +1,7 @@
-python-dateutil
+python-dateutil==2.5.3
 Flask
 bottle
 tornado
+webapp2
+flask-restful
+pyramid
